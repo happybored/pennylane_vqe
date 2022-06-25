@@ -7,7 +7,7 @@ from qiskit.aqua import aqua_globals, QuantumInstance
 from qiskit.aqua.algorithms import NumPyMinimumEigensolver
 from myvqe import VQE
 from qiskit.aqua.components.optimizers import SLSQP
-from qiskit.algorithms.optimizers import SPSA
+from qiskit.algorithms.optimizers import SPSA,CG,ADAM
 from qiskit.chemistry.components.initial_states import HartreeFock
 from qiskit.chemistry.components.variational_forms import UCCSD,UVCC
 from qiskit.chemistry.drivers import PySCFDriver
@@ -20,6 +20,7 @@ from qiskit.providers.aer import QasmSimulator
 from qiskit.providers.aer.noise import NoiseModel
 from qiskit.test.mock import FakeToronto,FakeJakarta
 from qiskit.circuit.library import EfficientSU2,TwoLocal
+from qiskit.opflow.gradients import Gradient, NaturalGradient, QFI, Hessian
 import math
 
 
@@ -159,15 +160,22 @@ qubit_op, aux_ops = operator.run(qmolecule)
 
 #exact res HX = lambda*X
 exact_result = NumPyMinimumEigensolver(qubit_op,aux_operators=aux_ops).run()
-print('exact_result:\n',exact_result)
+# print('exact_result:\n',exact_result)
 exact_result_mol = operator.process_algorithm_result(exact_result)
-print('exact_result_mol:\n',exact_result_mol)
+# print('exact_result_mol:\n',exact_result_mol)
 
 
-#VQE
+#optimizer
+
+
+grad = Gradient(grad_method='param_shift')
+# grad = NaturalGradient(grad_method='lin_comb', qfi_method='lin_comb_full', regularization='ridge')
+
+optimizer = CG(maxiter=50)
+# optimizer = SPSA(maxiter=100)
 # optimizer = SLSQP(maxiter=300,tol=1e-7)
 
-optimizer = SPSA(maxiter=100)
+
 # initial_state = HartreeFock(operator.molecule_info['num_orbitals'],
 #                              operator.molecule_info['num_particles'],
 #                              qubit_mapping=operator._qubit_mapping,
@@ -186,19 +194,17 @@ optimizer = SPSA(maxiter=100)
 var_form = TwoLocal(qubit_op.num_qubits,['ry','rz'], 'cry', 'circular', reps=2, insert_barriers=True)
 
 # print('initial_state:\n',initial_state)
-print('var_form:\n',var_form)
+# print('var_form:\n',var_form)
 
 
-algo = VQE(qubit_op, var_form, optimizer, aux_operators=aux_ops,callback=store_intermediate_result,max_evals_grouped=32)
-vqe_result = algo.run(qi_state_vector)
-print('vqe_result:\n',vqe_result)
-
-vqe_result_molecule = operator.process_algorithm_result(vqe_result)
-print('vqe_result_molecule:\n',vqe_result_molecule)
-
+# algo = VQE(qubit_op, var_form, optimizer, aux_operators=aux_ops,callback=store_intermediate_result,max_evals_grouped=32)
+# vqe_result = algo.run(qi_state_vector)
+# print('vqe_result:\n',vqe_result)
+# vqe_result_molecule = operator.process_algorithm_result(vqe_result)
+# print('vqe_result_molecule:\n',vqe_result_molecule)
 
 
-noisy_algo = VQE(qubit_op, var_form, optimizer, aux_operators=aux_ops, callback=store_intermediate_result_noise,max_evals_grouped=32)
+noisy_algo = VQE(qubit_op, var_form, optimizer, aux_operators=aux_ops,gradient= grad, callback=store_intermediate_result_noise,max_evals_grouped=32)
 noisy_vqe_result = noisy_algo.run(qi_noise)
 print('noisy_vqe_result:\n',noisy_vqe_result)
 noisy_vqe_result_molecule = operator.process_algorithm_result(noisy_vqe_result)
@@ -206,22 +212,22 @@ print('noisy_vqe_result_molecule:\n',noisy_vqe_result_molecule)
 
 
 
-noisy_mitigation_algo = VQE(qubit_op, var_form, optimizer, aux_operators=aux_ops, callback=store_intermediate_result_noise_mitigation)
-noisy_mitigation_vqe_result = noisy_mitigation_algo.run(qi_noise_mitigation)
-print('noisy_mitigation_vqe_result:\n',noisy_mitigation_vqe_result)
-noisy_mitigation_result_molecule = operator.process_algorithm_result(noisy_mitigation_vqe_result)
-print('noisy_mitigation_result_molecule:\n',noisy_mitigation_result_molecule)
+# noisy_mitigation_algo = VQE(qubit_op, var_form, optimizer, aux_operators=aux_ops, callback=store_intermediate_result_noise_mitigation)
+# noisy_mitigation_vqe_result = noisy_mitigation_algo.run(qi_noise_mitigation)
+# print('noisy_mitigation_vqe_result:\n',noisy_mitigation_vqe_result)
+# noisy_mitigation_result_molecule = operator.process_algorithm_result(noisy_mitigation_vqe_result)
+# print('noisy_mitigation_result_molecule:\n',noisy_mitigation_result_molecule)
 
 pylab.figure(1)
 
 # pylab.plot(distances, hf_energies, label='Hartree-Fock')
 # pylab.plot(distances, vqe_energies, 'o', label='vqe')
-pylab.plot(range(0,len(exact_energies)), exact_energies,  label='Exact')
+# pylab.plot(range(0,len(exact_energies)), exact_energies,  label='Exact')
 pylab.plot(range(0,len(noisy_vqe_energies)), noisy_vqe_energies, label='Noisy')
-pylab.plot(range(0,len(noisy_mitigation_vqe_energies)), noisy_mitigation_vqe_energies, label='Mitigation')
-pylab.plot(range(0,len(compression_exact_energies)), compression_exact_energies, label='Compression Exact')
+# pylab.plot(range(0,len(noisy_mitigation_vqe_energies)), noisy_mitigation_vqe_energies, label='Mitigation')
+# pylab.plot(range(0,len(compression_exact_energies)), compression_exact_energies, label='Compression Exact')
 pylab.plot(range(0,len(compression_noisy_vqe_energies)), compression_noisy_vqe_energies, label='Compression Noise')
-pylab.plot(range(0,len(compression_noisy_mitigation_vqe_energies)), compression_noisy_mitigation_vqe_energies, label='Compression Mitigation')
+# pylab.plot(range(0,len(compression_noisy_mitigation_vqe_energies)), compression_noisy_mitigation_vqe_energies, label='Compression Mitigation')
 print(np.real(exact_result['eigenvalue']))
 constant = np.full(max(len(exact_energies),len(noisy_vqe_energies),len(noisy_mitigation_vqe_energies)), np.real(exact_result['eigenvalue']))
 pylab.plot(range(0,len(constant)),constant , label='classic')

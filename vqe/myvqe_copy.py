@@ -37,7 +37,7 @@ from qiskit.aqua.utils.validation import validate_min
 from qiskit.aqua.utils.backend_utils import is_aer_provider
 from myvq_algorithm import VQAlgorithm, VQResult
 from qiskit.aqua.algorithms.minimum_eigen_solvers import MinimumEigensolver, MinimumEigensolverResult
-import sys
+
 logger = logging.getLogger(__name__)
 
 # disable check for var_forms, optimizer setter because of pylint bug
@@ -427,7 +427,6 @@ class VQE(VQAlgorithm, MinimumEigensolver):
                     ~StateFn(self._operator) @ StateFn(self._var_form),
                     bind_params=self._var_form_params,
                     backend=self._quantum_instance)
-
         vqresult = self.find_minimum(initial_point=self.initial_point,
                                      var_form=self.var_form,
                                      cost_fn=self._energy_evaluation,
@@ -527,7 +526,6 @@ class VQE(VQAlgorithm, MinimumEigensolver):
         sampled_expect_op = self._circuit_sampler.convert(self._expect_op, params=param_bindings)
         means = np.real(sampled_expect_op.eval())
 
-        #TODO: 先压缩，后计算cost
         if self._callback is not None:
             variance = np.real(self._expectation.compute_variance(sampled_expect_op))
             estimator_error = np.sqrt(variance / self.quantum_instance.run_config.shots)
