@@ -130,6 +130,7 @@ counts1 = []
 values1 = []
 noise_model = None
 device_backend = FakeJakarta()
+backend = Aer.get_backend('aer_simulator')
 seed =170
 
 
