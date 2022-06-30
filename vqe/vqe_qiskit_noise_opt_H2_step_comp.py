@@ -53,7 +53,7 @@ operator = Hamiltonian(qubit_mapping=QubitMappingType.PARITY,
 #     print(eval_count,mean)
 #     noisy_vqe_energies.append(mean)
 
-def get_fixing_parameters(weight,regu_val = math.pi *4 ):
+def get_fixing_parameters(weight,regu_val = math.pi ):
     t1 = np.floor(weight/regu_val) 
     t2 = weight % (regu_val)
     t1[t2>regu_val/2] = t1[t2>regu_val/2] + 1
@@ -98,18 +98,21 @@ def store_intermediate_result(vqe,eval_count, parameters, mean, std):
     print('step {}, after compression, Energy:{}'.format(eval_count,means))
     exact_energies.append(mean)
     compression_exact_energies.append(means)
+    return parameters1
 
 def store_intermediate_result_noise(vqe,eval_count, parameters, mean, std):
     print('='*50)
     print('step {}, original Energy:{}'.format(eval_count,mean))
-    # print(parameters)
+    print(parameters)
     # compress
     cparameters =  copy.deepcopy(parameters)
     parameters2 = compression(cparameters)
     means = vqe.manual_energy_evaluation(parameters2)
     print('step {}, after compression, Energy:{}'.format(eval_count,means))
+    print(parameters2)
     noisy_vqe_energies.append(mean)
     compression_noisy_vqe_energies.append(means)
+    return parameters2
 
 def store_intermediate_result_noise_mitigation(vqe,eval_count, parameters, mean, std):
     print('='*50)
@@ -171,8 +174,8 @@ exact_result_mol = operator.process_algorithm_result(exact_result)
 grad = Gradient(grad_method='param_shift')
 # grad = NaturalGradient(grad_method='lin_comb', qfi_method='lin_comb_full', regularization='ridge')
 
-optimizer = CG(maxiter=50)
-# optimizer = SPSA(maxiter=100)
+# optimizer = CG(maxiter=50)
+optimizer = SPSA(maxiter=100)
 # optimizer = SLSQP(maxiter=300,tol=1e-7)
 
 
@@ -197,11 +200,11 @@ var_form = TwoLocal(qubit_op.num_qubits,['ry','rz'], 'cry', 'circular', reps=2, 
 # print('var_form:\n',var_form)
 
 
-# algo = VQE(qubit_op, var_form, optimizer, aux_operators=aux_ops,callback=store_intermediate_result,max_evals_grouped=32)
-# vqe_result = algo.run(qi_state_vector)
-# print('vqe_result:\n',vqe_result)
-# vqe_result_molecule = operator.process_algorithm_result(vqe_result)
-# print('vqe_result_molecule:\n',vqe_result_molecule)
+algo = VQE(qubit_op, var_form, optimizer, aux_operators=aux_ops,callback=store_intermediate_result,max_evals_grouped=32)
+vqe_result = algo.run(qi_state_vector)
+print('vqe_result:\n',vqe_result)
+vqe_result_molecule = operator.process_algorithm_result(vqe_result)
+print('vqe_result_molecule:\n',vqe_result_molecule)
 
 
 noisy_algo = VQE(qubit_op, var_form, optimizer, aux_operators=aux_ops,gradient= grad, callback=store_intermediate_result_noise,max_evals_grouped=32)
@@ -218,39 +221,39 @@ print('noisy_vqe_result_molecule:\n',noisy_vqe_result_molecule)
 # noisy_mitigation_result_molecule = operator.process_algorithm_result(noisy_mitigation_vqe_result)
 # print('noisy_mitigation_result_molecule:\n',noisy_mitigation_result_molecule)
 
-pylab.figure(1)
+# pylab.figure(1)
 
-# pylab.plot(distances, hf_energies, label='Hartree-Fock')
-# pylab.plot(distances, vqe_energies, 'o', label='vqe')
+# # pylab.plot(distances, hf_energies, label='Hartree-Fock')
+# # pylab.plot(distances, vqe_energies, 'o', label='vqe')
 # pylab.plot(range(0,len(exact_energies)), exact_energies,  label='Exact')
-pylab.plot(range(0,len(noisy_vqe_energies)), noisy_vqe_energies, label='Noisy')
+# pylab.plot(range(0,len(noisy_vqe_energies)), noisy_vqe_energies, label='Noisy')
 # pylab.plot(range(0,len(noisy_mitigation_vqe_energies)), noisy_mitigation_vqe_energies, label='Mitigation')
 # pylab.plot(range(0,len(compression_exact_energies)), compression_exact_energies, label='Compression Exact')
-pylab.plot(range(0,len(compression_noisy_vqe_energies)), compression_noisy_vqe_energies, label='Compression Noise')
+# pylab.plot(range(0,len(compression_noisy_vqe_energies)), compression_noisy_vqe_energies, label='Compression Noise')
 # pylab.plot(range(0,len(compression_noisy_mitigation_vqe_energies)), compression_noisy_mitigation_vqe_energies, label='Compression Mitigation')
-print(np.real(exact_result['eigenvalue']))
-constant = np.full(max(len(exact_energies),len(noisy_vqe_energies),len(noisy_mitigation_vqe_energies)), np.real(exact_result['eigenvalue']))
-pylab.plot(range(0,len(constant)),constant , label='classic')
-pylab.xlabel('Iter')
-pylab.ylabel('Sum')
-pylab.title('H-H Ground State Energy;distance ={}'.format(dis))
-pylab.legend(loc='upper right')
-pylab.savefig('energy.jpg')
+# print(np.real(exact_result['eigenvalue']))
+# constant = np.full(max(len(exact_energies),len(noisy_vqe_energies),len(noisy_mitigation_vqe_energies)), np.real(exact_result['eigenvalue']))
+# pylab.plot(range(0,len(constant)),constant , label='classic')
+# pylab.xlabel('Iter')
+# pylab.ylabel('Sum')
+# pylab.title('H-H Ground State Energy;distance ={}'.format(dis))
+# pylab.legend(loc='upper right')
+# pylab.savefig('energy.jpg')
 
-# pylab.show()
+# # pylab.show()
 
 
-pylab.figure(2)
-print(original_length)
-print(compression_length)
+# pylab.figure(2)
+# print(original_length)
+# print(compression_length)
 
-pylab.plot(range(0,len(original_length)), original_length,  label='original')
-pylab.plot(range(0,len(compression_length)), compression_length,  label='compression')
-pylab.title('H-H Ground State Energy;distance ={}'.format(dis))
-pylab.legend(loc='upper right')
-pylab.xlabel('Iter')
-pylab.ylabel('length')
-pylab.savefig('length.jpg')
+# pylab.plot(range(0,len(original_length)), original_length,  label='original')
+# pylab.plot(range(0,len(compression_length)), compression_length,  label='compression')
+# pylab.title('H-H Ground State Energy;distance ={}'.format(dis))
+# pylab.legend(loc='upper right')
+# pylab.xlabel('Iter')
+# pylab.ylabel('length')
+# pylab.savefig('length.jpg')
 
 
 

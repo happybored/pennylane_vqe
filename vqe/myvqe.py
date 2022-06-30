@@ -518,7 +518,9 @@ class VQE(VQAlgorithm, MinimumEigensolver):
         if self._var_form.num_parameters == 0:
             raise RuntimeError('The var_form cannot have 0 parameters.')
 
+        # print('before compression, parameters, \n',parameters)
         parameter_sets = np.reshape(parameters, (-1, num_parameters))
+        # print('before compression,\n',parameter_sets)
         # Create dict associating each parameter with the lists of parameterization values for it
         param_bindings = dict(zip(self._var_form_params,
                                   parameter_sets.transpose().tolist()))  # type: Dict
@@ -528,16 +530,27 @@ class VQE(VQAlgorithm, MinimumEigensolver):
         means = np.real(sampled_expect_op.eval())
 
         #TODO: 先压缩，后计算cost
+        #Done
         if self._callback is not None:
             variance = np.real(self._expectation.compute_variance(sampled_expect_op))
             estimator_error = np.sqrt(variance / self.quantum_instance.run_config.shots)
             for i, param_set in enumerate(parameter_sets):
                 self._eval_count += 1
-                self._callback(self,self._eval_count, param_set, means[i], estimator_error[i])
+                parameter_sets[i] =self._callback(self,self._eval_count, param_set, means[i], estimator_error[i])
         else:
             self._eval_count += len(means)
-
+        parameters = parameter_sets[0]
+        # print('after compression,\n',parameter_sets)
+        # print('after compression,\n',parameter_sets)
+        # print('after compression, parameters, \n',parameters)
         end_time = time()
+
+        # Create dict associating each parameter with the lists of parameterization values for it
+        param_bindings = dict(zip(self._var_form_params,
+                                  parameter_sets.transpose().tolist()))  # type: Dict
+        sampled_expect_op = self._circuit_sampler.convert(self._expect_op, params=param_bindings)
+        means = np.real(sampled_expect_op.eval())
+
         logger.info('Energy evaluation returned %s - %.5f (ms), eval count: %s',
                     means, (end_time - start_time) * 1000, self._eval_count)
 
