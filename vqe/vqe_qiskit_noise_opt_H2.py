@@ -97,6 +97,7 @@ def store_intermediate_result(vqe,eval_count, parameters, mean, std):
     print('step {}, after compression, Energy:{}'.format(eval_count,means))
     exact_energies.append(mean)
     compression_exact_energies.append(means)
+    return parameters
 
 def store_intermediate_result_noise(vqe,eval_count, parameters, mean, std):
     print('='*50)
@@ -109,6 +110,7 @@ def store_intermediate_result_noise(vqe,eval_count, parameters, mean, std):
     print('step {}, after compression, Energy:{}'.format(eval_count,means))
     noisy_vqe_energies.append(mean)
     compression_noisy_vqe_energies.append(means)
+    return parameters
 
 def store_intermediate_result_noise_mitigation(vqe,eval_count, parameters, mean, std):
     print('='*50)
@@ -119,6 +121,7 @@ def store_intermediate_result_noise_mitigation(vqe,eval_count, parameters, mean,
     print('step {}, after compression, Energy:{}'.format(eval_count,means))
     noisy_mitigation_vqe_energies.append(mean)
     compression_noisy_mitigation_vqe_energies.append(means)
+    return parameters
 
 
 backend = Aer.get_backend('aer_simulator')
